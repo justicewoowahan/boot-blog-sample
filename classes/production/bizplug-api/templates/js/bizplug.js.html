@@ -1,0 +1,78 @@
+<script>
+    'use restrict';
+
+    var MENU_JSON = ${menuJson};
+    var bizPlug = {
+        subMenuContainerName: null,
+        createTopMenu: function (containerClassName, subMenuContainerName) {
+            var menuListElement = bizPlug._renderMenuList(MENU_JSON, 'nav navbar-nav navi-list', bizPlug.topMenuClickHandler);
+            var containers = document.getElementsByClassName(containerClassName);
+            bizPlug.subMenuContainerName = subMenuContainerName;
+            if (containers == null || containers === undefined || containers.length === 0) {
+                throw "containerNotExists";
+            }
+
+            containers[0].appendChild(menuListElement);
+            bizPlug.createSubMenu(MENU_JSON[0].id);
+        },
+
+        topMenuClickHandler: function (e) {
+            var target = e.target;
+            var menuId = target.getAttribute('data-menu-id');
+            var link = target.getAttribute('data-link');
+            bizPlug.createSubMenu(menuId);
+        },
+
+        _renderMenuList: function (menus, applyClassName, handler) {
+
+            var menuListElem = document.createElement('ul');
+            menuListElem.className = applyClassName;
+            for (var i = 0; i < menus.length; i++) {
+                var menu = menus[i];
+                var menuElement = document.createElement('li');
+                var menuLink = document.createElement("a");
+                var href = menuLink.setAttribute("href", "#")
+                menuLink.addEventListener('click', handler);
+                menuLink.setAttribute('data-menu-id', menu.id);
+                menuLink.setAttribute('data-link', menu.link);
+                menuLink.appendChild(document.createTextNode(menu.name));
+                menuElement.appendChild(menuLink);
+                menuListElem.appendChild(menuElement);
+            }
+
+            return menuListElem;
+        },
+        subMenuClickHandler: function(e) {
+            var target = e.target;
+            var link = target.getAttribute('data-link');
+            window.location.href = link;
+        },
+
+        createSubMenu: function (id) {
+            var subMenus = bizPlug._resolveSubMenus(id);
+            var menuListElement = bizPlug._renderMenuList(subMenus, 'nav-list', bizPlug.subMenuClickHandler);
+
+            var containers = document.getElementsByClassName(bizPlug.subMenuContainerName);
+
+            if (containers == null || containers === undefined || containers.length === 0) {
+                throw "ContainerNotExists";
+            }
+            containers[0].innerHTML = '';
+            containers[0].appendChild(menuListElement);
+        },
+
+
+        _resolveSubMenus: function (id) {
+
+            for (var i = 0; i < MENU_JSON.length; i++) {
+                var menu = MENU_JSON[i];
+
+                if (menu.id == id) {
+                    return menu.menuItems;
+                }
+            }
+
+            throw "subMenuNotExists";
+        }
+    };
+</script>

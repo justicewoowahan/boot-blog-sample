@@ -1,0 +1,230 @@
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layout">
+<head>
+    <title>GateKeeper</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous"/>
+    <style>
+        body {
+            padding-top: 80px;
+        }
+    </style>
+</head>
+<body>
+<section layout:fragment="content">
+    <div class="container">
+        <div class="row">
+                <input type="hidden" id="groupId" th:value="${groupId}"/>
+                <table class="table table-condensed">
+                    <thead>
+                    <tr>
+                        <th><input type="checkbox" id="checkAllUser"></th>
+                        <th>id</th>
+                        <th>loginid</th>
+                        <th>로그인방식</th>
+                        <!--<th>설명</th>-->
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="user : ${pages.getContent()}">
+                        <td><input type="checkbox" th:value="${user.id}" name="userid"></td>
+                        <td th:text="${user.id}"></td>
+                        <td th:text="${user.loginId}"></td>
+                        <td th:text="${user.loginType.desc}"></td>
+                        <!--<td th:text="${descriptiondesc}"></td>-->
+                        <td>
+                            <!--<a href="app-list.html" th:href="@{/web/admin/groups/{groupId}/apps(groupId=${app.id})}">바로가기</a>-->
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <div class='text-center'>
+                    <ul  class='pagination pagination-centered'>
+                        <li th:class="${pages.number eq 0}?'disabled':''">
+                            <a th:if="${pages.number eq 0}" href="javascript:void(0)" aria-label='Previous'><span aria-hidden='true'>&laquo;</span></a>
+                            <a th:unless="${pages.number eq 0}" th:href="@{__${#httpServletRequest.requestURI}__(page=${pages.number-1})}"  aria-label='Previous'><span aria-hidden='true'>&laquo;</span></a>
+                        </li>
+
+                        <li th:each="no:${#numbers.sequence(0, pages.totalPages-1)}" th:class="${pages.number eq no}?'active':''">
+                            <a th:href="@{__${#httpServletRequest.requestURI}__(page=${no})}" th:inline="text">[[${no+1}]]</a>
+                        </li>
+
+                        <li th:class="${pages.number+1 ge pages.totalPages}?'disabled':''">
+                            <a th:if="${pages.number+1 ge pages.totalPages}" href="javascript:void(0)"   aria-label='Next'><span aria-hidden='true'>&raquo;</span></a>
+                            <a th:unless="${pages.number+1 ge pages.totalPages}" th:href="@{__${#httpServletRequest.requestURI}__(page=${pages.number+1})}"  aria-label='Next'><span aria-hidden='true'>&raquo;</span></a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+                <div class="row">
+                    <button type="btn btn-default" data-toggle="modal" data-target="#createModal">사용자 등록</button>
+                    <button type="btn btn-default" id="btnShowGroupModal">선택된 사용자를 인증그룹에 등록</button>
+                </div>
+        </div>
+    </div>
+
+
+    <!-- Modal -->
+    <div id="createModal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">사용자 등록하기</h4>
+                </div>
+                <div class="modal-body">
+                    <form id="createForm" name="createForm" th:method="post" th:action="@{'/web/admin/users'}">
+                        <div class="form-group">
+                            <select id="loginType" name="loginType">
+                                <option th:each="form: ${createForm.allLoginTypes}" th:value="${form.code}" th:text="${form.desc}"></option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginId">loginId</label>
+                            <input type="text" class="form-control" id="loginId" name="loginId" placeholder="로그인아이디" required="required">
+                        </div>
+                        <div class="form-group">
+                            <label for="description">description</label>
+                            <input type="text" class="form-control" id="description" name="description" placeholder="설명" required="required">
+                        </div>
+                        <button type="submit" id="btn-create" class="btn btn-default">생성</button>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Modal -->
+    <div id="showGroupModal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">그룹에 사용자 추가하기</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <select name="groupId" id="selectedGroupId" multiple="multiple" style="width:300px">
+
+                        </select>
+                    </div>
+                    <button type="submit" id="btn-register-group" class="btn btn-default">그룹사용자 등록</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        // <![CDATA[
+        $(document).ready(function () {
+
+            $('#checkAllUser').change(function(e) {
+                var checked = $(this).prop('checked');
+                console.log('checked:' + checked);
+                $('input:checkbox[name="userid"]').each(function() {
+                    $(this).prop('checked', checked);
+                });
+            });
+
+            $('#btn-register-group').click(function(e) {
+                var userIds = [];
+                $('input:checkbox[name="userid"]:checked').each(function() {
+                    userIds.push($(this).val());
+                });
+
+                var groupIds = [];
+                $('#selectedGroupId :selected').each(function(i, selected) {
+                    groupIds.push($(selected).val());
+                });
+
+                if (groupIds.length == 0) {
+                    alert('그룹을 선택 해주세요');
+                    return;
+                }
+
+
+                var command = {
+                    gateKeeperIds: userIds,
+                    groupIds: groupIds
+                };
+
+                $.ajax({
+                    url :"/v1/api/admin/users/add-group-multiple",
+                    dataType:'json',
+                    type: 'POST',
+                    contentType:"application/json; charset=UTF-8",
+                    data: JSON.stringify(command),
+                    success: function(data) {
+                        alert('정상적으로 등록되었습니다');
+                        $('#btnShowGroupModal').modal('hide');
+                    }
+                });
+
+            });
+
+
+            $('#btnShowGroupModal').click(function(e) {
+
+                var userIds = [];
+                $('input:checkbox[name="userid"]:checked').each(function() {
+                    userIds.push($(this).val());
+                });
+
+                console.log(userIds);
+                if (userIds.length == 0) {
+                    alert('사용자를 선택 해주세요');
+                    return;
+                }
+
+                $.ajax({
+                    url: "/v1/api/admin/groups/all",
+                    type: 'GET',
+                    contentType: "application/json; charset=UTF-8",
+                    success: function(groups) {
+                        console.log(groups);
+                        $('#selectedGroupId').find('option')
+                                .remove()
+                                .end();
+                        for (var i=0; i<groups.length; i++) {
+                            $('#selectedGroupId').append('<option value="' + groups[i].id + '">' + groups[i].name + '</option>');
+                        }
+
+                    }
+                });
+
+                $('#showGroupModal').modal();
+            });
+        });
+
+        $('#createForm').submit(function(e) {
+
+            var loginId = $('#loginId').trim();
+            var description = $('#description').trim();
+
+            if (checkEmptyStringAndFocus(loginId, $("#loginId"), "아이디를 입력 해주세요"))  {
+                return false;
+            }
+            if (checkEmptyStringAndFocus(description, $("#description"), "description을 입력 해주세요")) {
+                return false;
+            }
+
+            return true;
+        });
+
+        // ]]>
+    </script>
+</section>
+</body>
+</html>

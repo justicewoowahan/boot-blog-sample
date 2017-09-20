@@ -1,0 +1,495 @@
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="layout">
+<head>
+    <title>GateKeeper</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css"
+          integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
+    <script
+            src="https://code.jquery.com/ui/1.9.2/jquery-ui.js"
+            integrity="sha256-PsB+5ZEsBlDx9Fi/GXc1bZmC7wEQzZK4bM/VwNm1L6c="
+            crossorigin="anonymous"></script>
+</head>
+<body>
+<section layout:fragment="content">
+    <div class="container">
+
+
+        <!--</div>-->
+        <div class="main-contents">
+            <div><!--컨텐츠 헤더-->
+                <div class="row content-header">
+                    <h2>메뉴관리</h2>
+                </div>
+
+                <!-- 컨텐츠 영역 -->
+                <div class="content-wrapper">
+                    <div class="box">
+                        <div class="box-title">
+                            <h4>메뉴</h4>
+                        </div>
+                        <div class="box-content">
+                            <div class="row">
+                                <div class="col-xs-3">
+                                    <h5>메뉴</h5>
+                                    <button type="button" class="btn btn-sm btn-default btn-add-submenu">메뉴추가</button>
+                                    <button type="button" class="btn btn-sm btn-default btn-edit-topmenu-order">top menu순서보정 </button>
+                                    <div class="">
+                                    </div>
+                                    <div id="menu_tree_wrapper"></div>
+                                </div>
+                                <div class="col-xs-9">
+                                    <form id="subMenusForm" method="post">
+                                        <table class="table table-condensed" id="menuList">
+                                            <thead>
+                                            <tr>
+                                                <th>id</th>
+                                                <th>메뉴명</th>
+                                                <th>link</th>
+                                                <th>설명</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                        <button type="button" class="btn btn-default" id="btn-save">저장</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- 메뉴 아이템 추가 Modal -->
+    <div id="addMenuItemModal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">하위메뉴추가</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <input type="hidden" id="parentMenuItemNo" value=""/>
+                        <label for="addMenuItemName">메뉴</label><input class="form-control" type="text" name="name"
+                                                                      id="addMenuItemName"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="addMenuItemLink">link</label><input class="form-control" type="text" name="link"
+                                                                        id="addMenuItemLink"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="addMenuItemDescription">description</label><input class="form-control" type="text"
+                                                                                      name="addMenuItemDescription"
+                                                                                      id="addMenuItemDescription"/>
+                    </div>
+                    <button type="button" id="btn-add-submenu" class="btn btn-default">등록</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default btn-close" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="editMenuItemModal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">메뉴수정</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <input type="hidden" id="editParentMenuId"/>
+                        <input type="hidden" id="editMenuItemId"/>
+                        <label for="editMenuItemName">메뉴</label><input class="form-control" type="text" name="name"
+                                                                       id="editMenuItemName"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="editMenuItemLink">link</label><input class="form-control" type="text" name="link"
+                                                                         id="editMenuItemLink"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="editMenuItemDescription">description</label><input class="form-control" type="text"
+                                                                                       name="description"
+                                                                                       id="editMenuItemDescription"/>
+                    </div>
+                    <button type="button" id="btn-edit-submenu" class="btn btn-default">수정</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default btn-close" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="text/javascript">
+
+        var MenuItemService = {
+            getTopMenus: function (cb, errCb) {
+                $.ajax({
+                    url: '/v1/api/menus/topMenus',
+                    dataType: 'json',
+                    type: 'GET',
+                    contentType: 'application/json; charset=UTF-8',
+                    success: function (data) {
+                        cb(data);
+                    }
+                })
+            },
+            getSubMenus: function (parentId, cb, errCb) {
+                $.ajax({
+                    url: '/v1/api/menus/' + parentId + '/menus',
+                    dataType: 'json',
+                    type: 'GET',
+                    contentType: 'application/json; charset=UTF-8',
+                    success: function (data) {
+                        cb(data);
+                    }
+                })
+
+            },
+            get: function (menuItemId, cb, errCb) {
+                $.ajax({
+                    url: '/v1/api/menus/' + menuItemId,
+                    dataType: 'json',
+                    type: 'GET',
+                    contentType: 'application/json; charset=UTF-8',
+                    success: function (data) {
+                        cb(data);
+                    }
+                });
+            },
+            create: function (menuItem, cb, errCb) {
+                $.ajax({
+                    url: '/v1/api/menus',
+                    dataType: 'json',
+                    data: JSON.stringify(menuItem),
+                    type: 'POST',
+                    contentType: 'application/json; charset=UTF-8',
+                    success: function (data) {
+                        cb(data);
+                    }
+
+                });
+            },
+            edit: function (menuItemId, menuItem, cb, errCb) {
+                $.ajax({
+                    url: '/v1/api/menus/' + menuItemId,
+                    dataType: 'json',
+                    data: JSON.stringify(menuItem),
+                    type: 'PUT',
+                    contentType: 'application/json; charset=UTF-8',
+                    success: function (data) {
+                        cb(data);
+                    }
+                });
+            }
+        };
+
+
+        var MenuItemController = {
+            loadTopMenu: function () {
+                var form = $('#subMenusForm');
+                form.attr("action", "/menus");
+                MenuItemService.getTopMenus(function (data) {
+                    MenuItemController.renderMenuItems(data);
+                })
+            },
+
+            loadSubMenus: function (parentId) {
+                var form = $('#subMenusForm');
+                form.attr("action", "/menus/" + parentId);
+
+                MenuItemService.getSubMenus(parentId, function (data) {
+                    MenuItemController.renderMenuItems(data);
+                });
+            },
+
+            renderMenuItems: function (data) {
+                var $table = $('#menuList');
+                $table.empty();
+
+                for (var i = 0; i < data.length; i++) {
+                    var menu = data[i];
+                    var id = menu.id;
+                    var name = menu.name;
+                    var description = menu.description;
+                    var link = menu.link;
+                    var displayOrder = menu.displayOrder;
+
+                    $table.append('<tr>' +
+                        '<th>'+ id +'<input type="hidden" value="' + id + '" name="id"/></th>' +
+                        '<th><input type="text" value="' + name + '" name="name"/></th>' +
+                        '<th><input type="text" value="' + description + '" name="description"/></th>' +
+                        '<th><input type="text" value="' + link + '" name="link"/>' +
+                        '<input type="hidden" class="displayOrder" name="displayOrder" value="' + displayOrder + '"/></th>' +
+                        '</tr>');
+                }
+
+                $('tbody').sortable();
+            },
+
+            addSubMenuButtonHandler: function (e) {
+                var $elem = $(e.target);
+                var menuId = $elem.attr('data-id');
+                $('#addMenuItemModal').modal('show');
+            },
+
+            menuItemCreateButtonHandler: function (menuItemId, level) {
+                console.log('id:' + menuItemId + ',level:' + level);
+                console.log(menuItemId);
+                $('#parentMenuItemNo').val(menuItemId);
+                $('#addMenuItemModal').modal('show');
+            }
+
+            , addMenuButtonHandler: function (e) {
+                var parentMenuItemNo = $('#parentMenuItemNo').val();
+                console.log('parent:' + parentMenuItemNo);
+                var data = {
+                    parentMenuItemNo: parentMenuItemNo,
+                    name: $('#addMenuItemName').val(),
+                    link: $('#addMenuItemLink').val(),
+                    description: $('#addMenuItemDescription').val()
+                };
+
+
+                MenuItemService.create(data, function (data) {
+                    alert('메뉴가 추가 되었습니다');
+                    MenuItemController.initAddModal();
+                    $('#addMenuItemModal').modal(false);
+                    MenuItemController.viewMenu(data.id);
+                    MenuTreeHelper.loadMenuItems();
+                });
+            },
+            showEditModal: function (menuItemId) {
+                MenuItemService.get(menuItemId, function (menu) {
+                    MenuItemController.renderMenu(menu);
+                    $('#editMenuItemModal').modal();
+                });
+
+            },
+            renderMenu: function (menu) {
+                console.log(menu);
+                $('#editMenuItemId').val(menu.id);
+                $('#editMenuItemName').val(menu.name);
+                $('#editMenuItemLink').val(menu.link);
+                $('#editMenuItemDescription').val(menu.description);
+            },
+            viewMenu: function (menuId) {
+                MenuItemService.get(menuId, function (menu) {
+                    console.log(menu);
+                });
+
+            },
+            editButtonHandler: function (e) {
+                var menuItemId = $('#editMenuItemId').val();
+                var data = {
+                    name: $('#editMenuItemName').val(),
+                    link: $('#editMenuItemLink').val(),
+                    description: $('#editMenuItemDescription').val()
+                };
+
+                MenuItemService.edit(menuItemId, data, function (data) {
+                    alert('메뉴가 수정 되었습니다');
+                    MenuItemController.initEditModal();
+                    MenuItemController.viewMenu(menuItemId);
+                    MenuTreeHelper.loadMenuItems();
+                });
+            },
+            initEditModal: function () {
+                $('#editParentMenuId').val('');
+                $('#editMenuItemId').val('');
+                $('#editMenuItemName').val('');
+                $('#editMenuItemLink').val('');
+                $('#editMenuItemDescription').val('');
+                $('#editMenuItemModal').modal('hide');
+            },
+            initAddModal: function () {
+                $('#addParentMenuId').val('');
+                $('#addMenuItemId').val('');
+                $('#addMenuItemName').val('');
+                $('#addMenuItemLink').val('');
+                $('#addMenuItemDescription').val('');
+            }
+
+        };
+
+
+        var MenuTreeHelper = {
+            loadMenuItems: function () {
+                $.ajax({
+                    url: "/v1/api/menus",
+                    dataType: 'json',
+                    type: 'GET',
+                    contentType: "application/json; charset=UTF-8",
+                    success: function (data) {
+                        var menus = [];
+                        for (var i = 0; i < data.length; i++) {
+                            var menuItem = data[i];
+
+                            var menuTree = {
+                                "text": menuItem.name,
+                                data: {
+                                    "parentMenuId": (menuItem.parent == null) ? null : menuItem.parent.id,
+                                    "menuItemId": menuItem.id,
+                                    "displayOrder": menuItem.displayOrder
+                                },
+                                children: []
+                            };
+                            MenuTreeHelper.convertChildren(menuTree, menuItem);
+                            menus.push(menuTree);
+                        }
+                        $('#menu_tree_wrapper').jstree(true).settings.core.data = menus;
+                        $('#menu_tree_wrapper').jstree("refresh");
+                    }
+                });
+            },
+
+            convertChildren: function (menuNode, menuData) {
+                var children = [];
+
+                var menuItems = menuData.menuItems;
+
+                if (menuItems == null || menuItems.length == 0) {
+                    menuNode.children = children;
+                    return;
+                }
+
+                for (var i = 0; i < menuItems.length; i++) {
+                    var menuItem = menuItems[i];
+                    var childNode = {
+                        "text": menuItem.name,
+                        data: {
+                            "parentMenuId": (menuItem.parent == null) ? null : menuItem.parent.id,
+                            "menuItemId": menuItem.id,
+                            "displayOrder": menuItem.displayOrder
+                        }
+                    }
+                    console.log(menuItem.parent);
+                    if (menuItem.menuItems != null || menuItem.menuItems.length > 0) {
+                        console.log('appendChild');
+                        MenuTreeHelper.convertChildren(childNode, menuItem);
+                    }
+                    children.push(childNode);
+                }
+                menuNode.children = children;
+            },
+
+            init: function (menus) {
+                $('#menu_tree_wrapper').jstree({
+                    'core': {
+                        'data': []
+                    },
+                    "plugins": ["contextmenu", "ui", "dnd", "sort"],
+                    'sort': function (a, b) {
+                        a1 = this.get_node(a);
+                        b1 = this.get_node(b);
+                        return (a1.data.displayOrder > b1.displayOrder) ? 1 : -1;
+                    },
+
+                    "contextmenu": {
+                        "items": function () {
+                            return {
+                                "순서보정": {
+                                    "label": "순서보정",
+                                    action: function (data) {
+                                        var inst = $.jstree.reference(data.reference);
+                                        var obj = inst.get_node(data.reference);
+                                        var selectedNode = inst.get_node(obj.id);
+                                        var menuId = selectedNode.data.menuItemId;
+                                        MenuItemController.loadSubMenus(menuId);
+                                    }
+                                },
+                                "생성": {
+                                    "label": "생성",
+                                    "action": function (data) {
+                                        var inst = $.jstree.reference(data.reference);
+                                        var obj = inst.get_node(data.reference);
+                                        var selectedNode = inst.get_node(obj.id);
+                                        var depth = selectedNode.parents.length;
+                                        console.log(">>menuIteId:" + selectedNode.data.menuItemId)
+                                        MenuItemController.menuItemCreateButtonHandler(selectedNode.data.menuItemId);
+
+                                    }
+                                },
+                                "수정": {
+                                    "label": "수정",
+                                    "action": function (data) {
+                                        var inst = $.jstree.reference(data.reference);
+                                        obj = inst.get_node(data.reference);
+                                        MenuItemController.showEditModal(obj.data.menuItemId);
+                                    }
+                                },
+                                "삭제": {
+                                    "label": "삭제",
+                                    "action": function (data) {
+                                        var ref = $.jstree.reference(data.reference),
+                                            sel = ref.get_selected();
+                                        if (!sel.length) {
+                                            return false;
+                                        }
+                                        ref.delete_node(sel);
+
+                                    }
+                                }
+                            };
+                        }
+                    }
+
+                });
+            }
+        };
+
+        $(function () {
+            MenuTreeHelper.init();
+            $('.btn-view-menu').click(function (e) {
+                MenuTreeHelper.loadMenuItems();
+            });
+
+
+            $('.btn-add-submenu').click(function (e) {
+                MenuItemController.addSubMenuButtonHandler(e);
+            });
+            $('#btn-add-submenu').click(function (e) {
+                MenuItemController.addMenuButtonHandler(e);
+            });
+            $('#btn-edit-submenu').click(function (e) {
+                MenuItemController.editButtonHandler(e);
+            });
+
+            $('#btn-save').click(function (e) {
+                $('tbody input[name=displayOrder]').each(function(index, element) {
+                    console.log('index:' + index);
+                   $(this).val(index);
+                });
+                $('#subMenusForm').submit();
+            });
+
+            $('.btn-edit-topmenu-order').click(function(e) {
+                MenuItemController.loadTopMenu();
+            });
+
+            MenuTreeHelper.loadMenuItems();
+            MenuItemController.loadTopMenu();
+            $('tbody').sortable();
+        });
+
+
+    </script>
+</section>
+</body>
+</html>

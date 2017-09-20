@@ -1,0 +1,5 @@
+rootProject.name = 'bootsample'
+
+include 'blog-api'
+include 'blog-service'
+include 'blog-commons'
